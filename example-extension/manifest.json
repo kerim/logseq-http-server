@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Logseq Copilot (HTTP)",
+  "version": "1.0",
+  "description": "Access Logseq via HTTP API",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost:8080/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  }
+}
