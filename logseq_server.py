@@ -217,8 +217,9 @@ class LogseqHTTPHandler(http.server.BaseHTTPRequestHandler):
             escaped_query = query.replace('"', '\\"')
 
             # Datalog query to search in block titles
-            # Pull page details (id, uuid, title, name) for proper page object construction
-            datalog_query = f'[:find (pull ?b [:block/uuid :block/title {{:block/page [:db/id :block/uuid :block/title :block/name]}}]) :where [?b :block/title ?title] [(clojure.string/includes? ?title "{escaped_query}")]]'
+            # Pull page details (id, uuid, title, name, journal-day) for proper page object construction
+            # journal-day is an integer (YYYYMMDD) for journal pages, absent for regular pages
+            datalog_query = f'[:find (pull ?b [:block/uuid :block/title {{:block/page [:db/id :block/uuid :block/title :block/name :block/journal-day]}}]) :where [?b :block/title ?title] [(clojure.string/includes? ?title "{escaped_query}")]]'
 
             response = self._execute_logseq_command('query', [graph, datalog_query])
             self._send_json(response)
