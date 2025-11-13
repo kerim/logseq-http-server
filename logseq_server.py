@@ -10,12 +10,14 @@ Usage:
     python3 logseq_server.py [--port PORT] [--host HOST]
 
 API Endpoints:
+    GET  /health                        - Health check
+    GET  /version                       - Get server version
     GET  /list                          - List all graphs
     GET  /show?graph=name               - Show graph info
     GET  /search?q=query[&graph=name]   - Search graphs
     POST /query                         - Execute datalog query
          Body: {"graph": "name", "query": "..."}
-    GET  /health                        - Health check
+
 """
 
 import http.server
@@ -26,6 +28,9 @@ import argparse
 import logging
 import os
 from pathlib import Path
+
+# Version
+VERSION = '0.0.2'
 
 # Configuration
 DEFAULT_PORT = 8765
@@ -185,6 +190,9 @@ class LogseqHTTPHandler(http.server.BaseHTTPRequestHandler):
         if path == '/health':
             self._send_json({'status': 'healthy', 'message': 'Logseq HTTP Server is running'})
 
+        elif path == '/version':
+            self._send_json({'version': VERSION})
+
         elif path == '/list':
             response = self._execute_logseq_command('list')
             self._send_json(response)
@@ -214,12 +222,14 @@ class LogseqHTTPHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             # Escape double quotes in query for safe inclusion in datalog
-            escaped_query = query.replace('"', '\\"')
+            escaped_query_lower = query.replace('"', '\\"').lower()
+            escaped_query_orig = query.replace('"', '\\"')
 
-            # Datalog query to search in block titles
-            # Pull page details (id, uuid, title, name, journal-day) for proper page object construction
-            # journal-day is an integer (YYYYMMDD) for journal pages, absent for regular pages
-            datalog_query = f'[:find (pull ?b [:block/uuid :block/title {{:block/page [:db/id :block/uuid :block/title :block/name :block/journal-day]}}]) :where [?b :block/title ?title] [(clojure.string/includes? ?title "{escaped_query}")]]'
+            # Datalog query to search for PAGES (not blocks) by page name OR title
+            # Search both name (lowercase) and title (mixed case) for better coverage
+            # This provides case-insensitive search by matching either field
+            # Returns page info: uuid, name, title, journal-day
+            datalog_query = f'[:find (pull ?p [:db/id :block/uuid :block/name :block/title :block/journal-day]) :where [?p :block/name ?name] [?p :block/title ?title] (or [(clojure.string/includes? ?name "{escaped_query_lower}")] [(clojure.string/includes? ?title "{escaped_query_orig}")])]'
 
             response = self._execute_logseq_command('query', [graph, datalog_query])
             self._send_json(response)
@@ -281,12 +291,13 @@ def main():
     httpd = http.server.HTTPServer(server_address, LogseqHTTPHandler)
 
     print(f"{'='*60}")
-    print(f"Logseq HTTP Server")
+    print(f"Logseq HTTP Server v{VERSION}")
     print(f"{'='*60}")
     print(f"Listening on: http://{args.host}:{args.port}")
     print(f"Log file: {LOG_FILE}")
     print(f"\nEndpoints:")
     print(f"  GET  /health")
+    print(f"  GET  /version")
     print(f"  GET  /list")
     print(f"  GET  /show?graph=NAME")
     print(f"  GET  /search?q=QUERY[&graph=NAME]")
@@ -294,7 +305,7 @@ def main():
     print(f"\nPress Ctrl+C to stop")
     print(f"{'='*60}\n")
 
-    logging.info(f"Server started on {args.host}:{args.port}")
+    logging.info(f"Server v{VERSION} started on {args.host}:{args.port}")
 
     try:
         httpd.serve_forever()
