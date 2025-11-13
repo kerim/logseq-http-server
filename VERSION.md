@@ -1,5 +1,26 @@
 # Logseq HTTP Server - Version History
 
+## Version 0.0.3 (2025-11-13)
+
+**Privacy Improvements:**
+- 🔒 Default mode no longer logs search queries or graph names
+- 🔒 Only logs health checks, startup, shutdown, and errors
+- Added `--debug` flag for troubleshooting (with privacy warning)
+- Debug mode displays prominent warning about logging user activity
+- Clear messaging about privacy protection
+
+**Breaking Changes:**
+- Request logging now minimal by default (may affect debugging)
+- Use `--debug` flag to see detailed request logs when needed
+- Existing logs may contain historical search queries - consider clearing
+
+**Migration:**
+- No action required - privacy mode is automatic
+- Clear existing logs: `cat /dev/null > /tmp/logseq-server.log`
+- For debugging: add `--debug` flag when starting server
+
+---
+
 ## Version 0.0.2 (2025-11-13)
 
 **Major Features:**

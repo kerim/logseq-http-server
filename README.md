@@ -11,11 +11,12 @@ A simple HTTP server that provides REST API access to Logseq CLI commands. Enabl
 - ✅ **Browser agnostic** - Works with any browser
 - ✅ **Easy to debug** - Test with curl or browser
 - ✅ **CORS enabled** - Works with browser extensions
-- ✅ **Comprehensive logging** - All requests logged
+- ✅ **Privacy-safe logging** - Search queries not logged by default
+- ✅ **macOS background service** - Auto-start on login with GUI control app
 
-## TODO
+## Version
 
-- [ ] **Background Service**: Improve server to run automatically as a background service on system startup, without requiring manual terminal execution. Currently users must either run `python3 logseq_server.py` in a terminal or manually configure launchd/systemd. A native background service implementation would provide better user experience.
+**Current: v0.0.3** - See [VERSION.md](VERSION.md) for changelog
 
 ## Prerequisites
 
@@ -243,12 +244,13 @@ const queryResponse = await fetch('http://localhost:8765/query', {
 ## Command Line Options
 
 ```bash
-python3 logseq_server.py [--port PORT] [--host HOST]
+python3 logseq_server.py [--port PORT] [--host HOST] [--debug]
 ```
 
 **Options:**
 - `--port` - Port to listen on (default: 8765)
 - `--host` - Host to bind to (default: localhost)
+- `--debug` - Enable debug logging (logs all queries - privacy warning!)
 
 **Examples:**
 ```bash
@@ -257,18 +259,42 @@ python3 logseq_server.py --port 9000
 
 # Allow connections from other machines (be careful!)
 python3 logseq_server.py --host 0.0.0.0
+
+# Enable debug mode for troubleshooting
+python3 logseq_server.py --debug
 ```
 
 ## Logging
 
-All requests are logged to:
-- **File**: `logseq-http-server.log` (in server directory)
+### Privacy Mode (Default)
+
+By default, the server uses **privacy-safe logging**:
+- ✅ Logs server startup/shutdown and errors
+- ✅ Logs health check requests
+- ❌ Does NOT log search queries, graph names, or URLs
+
+**Log location:**
+- **File**: `/tmp/logseq-server.log` (for LaunchAgent) or `logseq-http-server.log` (manual run)
 - **Console**: stdout
 
 View logs in real-time:
 ```bash
-tail -f logseq-http-server.log
+tail -f /tmp/logseq-server.log
 ```
+
+### Debug Mode
+
+For troubleshooting, enable debug mode to log all requests:
+
+```bash
+python3 logseq_server.py --debug
+```
+
+⚠️ **Warning:** Debug mode logs all search queries in plain text. Remember to:
+1. Disable debug mode after troubleshooting
+2. Clear logs: `cat /dev/null > /tmp/logseq-server.log`
+
+See [macos/README.md](macos/README.md) for instructions on enabling debug mode with the LaunchAgent.
 
 ## Security Considerations
 
@@ -354,7 +380,28 @@ Then update your extension to use the new port.
 
 ## Running in Background
 
-### macOS/Linux - Using nohup
+### macOS - Recommended Method ✨
+
+**Use the automated installer and GUI control app!**
+
+See [macos/README.md](macos/README.md) for:
+- 🚀 One-command installation
+- 📱 GUI control app
+- 🔄 Auto-start on login
+- 🐛 Debug mode toggle
+- 📝 Log viewing/clearing
+
+Quick install:
+```bash
+cd /Users/niyaro/Documents/Code/logseq-http-server/macos
+./install.sh
+```
+
+Then use `/Applications/Logseq Server Control.app` to manage the server.
+
+### macOS/Linux - Manual Background Run
+
+Using nohup:
 ```bash
 nohup python3 logseq_server.py > /dev/null 2>&1 &
 ```
@@ -362,40 +409,6 @@ nohup python3 logseq_server.py > /dev/null 2>&1 &
 Stop it:
 ```bash
 pkill -f logseq_server.py
-```
-
-### macOS - Using launchd (Auto-start on login)
-
-Create `~/Library/LaunchAgents/com.logseq.sidekick.server.plist`:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.logseq.sidekick.server</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/usr/bin/python3</string>
-        <string>/Users/niyaro/Documents/Code/logseq-http-server/logseq_server.py</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-    <key>KeepAlive</key>
-    <true/>
-</dict>
-</plist>
-```
-
-Load it:
-```bash
-launchctl load ~/Library/LaunchAgents/com.logseq.sidekick.server.plist
-```
-
-Unload it:
-```bash
-launchctl unload ~/Library/LaunchAgents/com.logseq.sidekick.server.plist
 ```
 
 ## Integration with Logseq DB Sidekick

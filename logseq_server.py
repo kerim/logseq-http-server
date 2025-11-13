@@ -7,7 +7,12 @@ Enables browser extensions and other applications to query Logseq graphs
 without requiring the Logseq Desktop app to be running.
 
 Usage:
-    python3 logseq_server.py [--port PORT] [--host HOST]
+    python3 logseq_server.py [--port PORT] [--host HOST] [--debug]
+
+Options:
+    --port PORT    Port to listen on (default: 8765)
+    --host HOST    Host to bind to (default: localhost)
+    --debug        Enable debug logging (WARNING: logs all queries)
 
 API Endpoints:
     GET  /health                        - Health check
@@ -18,6 +23,9 @@ API Endpoints:
     POST /query                         - Execute datalog query
          Body: {"graph": "name", "query": "..."}
 
+Privacy:
+    By default, only health checks and errors are logged.
+    Debug mode logs all requests including search queries.
 """
 
 import http.server
@@ -30,7 +38,7 @@ import os
 from pathlib import Path
 
 # Version
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 
 # Configuration
 DEFAULT_PORT = 8765
@@ -38,15 +46,31 @@ DEFAULT_HOST = 'localhost'
 LOG_FILE = Path(__file__).parent / 'logseq-http-server.log'
 LOGSEQ_BIN = '/opt/homebrew/bin/logseq'  # Full path to logseq CLI
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_FILE),
-        logging.StreamHandler()
-    ]
-)
+
+class PrivacyFilter(logging.Filter):
+    """Filter that blocks sensitive logging unless debug mode is enabled."""
+
+    def __init__(self, debug_mode=False):
+        super().__init__()
+        self.debug_mode = debug_mode
+
+    def filter(self, record):
+        # Always allow startup, shutdown, errors
+        if record.levelno >= logging.ERROR:
+            return True
+
+        # If debug mode, allow everything
+        if self.debug_mode:
+            return True
+
+        # In privacy mode, only allow health checks and system messages
+        message = record.getMessage()
+        if 'GET /health' in message or 'Server' in message:
+            return True
+
+        # Block all other requests
+        return False
+
 
 class LogseqHTTPHandler(http.server.BaseHTTPRequestHandler):
     """HTTP request handler for Logseq CLI commands."""
@@ -284,8 +308,48 @@ def main():
                         help=f'Port to listen on (default: {DEFAULT_PORT})')
     parser.add_argument('--host', type=str, default=DEFAULT_HOST,
                         help=f'Host to bind to (default: {DEFAULT_HOST})')
+    parser.add_argument('--debug', action='store_true',
+                        help='Enable debug logging (logs all queries - privacy warning!)')
 
     args = parser.parse_args()
+
+    # Display debug warning if enabled
+    if args.debug:
+        import time
+        print("\n" + "="*60)
+        print("⚠️  WARNING: DEBUG MODE ENABLED")
+        print("="*60)
+        print("Full request logging is active. This will log:")
+        print("- All search queries")
+        print("- Graph names")
+        print("- Visited URLs")
+        print()
+        print("This creates a plain-text history of your activity.")
+        print()
+        print("Remember to:")
+        print("1. Clear logs when done: cat /dev/null > /tmp/logseq-server.log")
+        print("2. Disable debug mode after fixing your issue")
+        print()
+        print("To start without debug: python3 logseq_server.py")
+        print("="*60 + "\n")
+
+        # Give user time to see warning
+        time.sleep(3)
+
+    # Set up logging with privacy filter
+    privacy_filter = PrivacyFilter(debug_mode=args.debug)
+
+    file_handler = logging.FileHandler(LOG_FILE)
+    file_handler.addFilter(privacy_filter)
+
+    console_handler = logging.StreamHandler()
+    console_handler.addFilter(privacy_filter)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[file_handler, console_handler]
+    )
 
     server_address = (args.host, args.port)
     httpd = http.server.HTTPServer(server_address, LogseqHTTPHandler)
@@ -305,7 +369,10 @@ def main():
     print(f"\nPress Ctrl+C to stop")
     print(f"{'='*60}\n")
 
-    logging.info(f"Server v{VERSION} started on {args.host}:{args.port}")
+    if args.debug:
+        logging.info(f"Server v{VERSION} started on {args.host}:{args.port} (DEBUG MODE)")
+    else:
+        logging.info(f"Server v{VERSION} started on {args.host}:{args.port} (Privacy Mode)")
 
     try:
         httpd.serve_forever()

@@ -113,6 +113,56 @@ launchctl load -w ~/Library/LaunchAgents/com.logseq.sidekick.server.plist
 
 Simply run `./install.sh` again. It will ask if you want to reinstall.
 
+## Privacy & Logging
+
+By default, the server uses privacy-safe logging:
+- Only logs health checks and errors
+- Does NOT log search queries or graph names
+- Log file: `/tmp/logseq-server.log`
+
+### Debug Mode
+
+If you need to troubleshoot, enable debug mode:
+
+**Manual start:**
+```bash
+python3 /path/to/logseq_server.py --debug
+```
+
+**LaunchAgent:** Edit the plist to add `--debug` flag:
+
+1. Stop the server:
+   ```bash
+   launchctl unload ~/Library/LaunchAgents/com.logseq.sidekick.server.plist
+   ```
+
+2. Edit the plist:
+   ```bash
+   nano ~/Library/LaunchAgents/com.logseq.sidekick.server.plist
+   ```
+
+3. Add `<string>--debug</string>` to ProgramArguments:
+   ```xml
+   <key>ProgramArguments</key>
+   <array>
+       <string>/opt/homebrew/bin/python3</string>
+       <string>/Users/your-username/Documents/Code/logseq-http-server/logseq_server.py</string>
+       <string>--debug</string>  <!-- Add this line -->
+   </array>
+   ```
+
+4. Restart the server:
+   ```bash
+   launchctl load -w ~/Library/LaunchAgents/com.logseq.sidekick.server.plist
+   ```
+
+⚠️ **Warning:** Debug mode logs all search queries in plain text.
+
+**After debugging, remember to:**
+1. Remove the `--debug` flag from the plist
+2. Clear logs: `cat /dev/null > /tmp/logseq-server.log`
+3. Restart: `launchctl unload ~/Library/LaunchAgents/com.logseq.sidekick.server.plist && launchctl load -w ~/Library/LaunchAgents/com.logseq.sidekick.server.plist`
+
 ## Technical Details
 
 ### LaunchAgent Configuration
