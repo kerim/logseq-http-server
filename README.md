@@ -13,6 +13,10 @@ A simple HTTP server that provides REST API access to Logseq CLI commands. Enabl
 - ✅ **CORS enabled** - Works with browser extensions
 - ✅ **Comprehensive logging** - All requests logged
 
+## TODO
+
+- [ ] **Background Service**: Improve server to run automatically as a background service on system startup, without requiring manual terminal execution. Currently users must either run `python3 logseq_server.py` in a terminal or manually configure launchd/systemd. A native background service implementation would provide better user experience.
+
 ## Prerequisites
 
 ### Required
