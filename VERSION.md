@@ -1,5 +1,31 @@
 # Logseq HTTP Server - Version History
 
+## Version 0.0.4 (2025-11-21)
+
+**CLI Compatibility Update:**
+- ✅ Updated for @logseq/cli v4.0 compatibility
+- Fixed `query` command to use new `-g` flag format
+- Updated `/search` endpoint - now uses `logseq query "..." -g graph-name`
+- Updated `/query` endpoint (POST) - now uses `logseq query "..." -g graph-name`
+- Note: `show` command still uses positional arguments (unchanged in v4.0)
+
+**Breaking Change:**
+- Requires @logseq/cli >= 4.0.0
+- Will NOT work with @logseq/cli < 4.0.0 (use v0.0.3 for older CLI versions)
+
+**Migration:**
+```bash
+# Update CLI to v4.0+
+npm update -g @logseq/cli
+
+# Verify version
+logseq --version  # Should show 0.4.0 or higher
+
+# No changes needed to HTTP server code - works automatically
+```
+
+---
+
 ## Version 0.0.3 (2025-11-13)
 
 **Privacy Improvements:**

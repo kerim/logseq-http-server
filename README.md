@@ -16,7 +16,22 @@ A simple HTTP server that provides REST API access to Logseq CLI commands. Enabl
 
 ## Version
 
-**Current: v0.0.3** - See [VERSION.md](VERSION.md) for changelog
+**Current: v0.0.4** - See [VERSION.md](VERSION.md) for changelog
+
+### ⚠️ Breaking Change in v0.0.4
+
+**This version requires @logseq/cli v4.0 or higher.**
+
+If you're upgrading from v0.0.3 or earlier:
+```bash
+# Update the CLI
+npm update -g @logseq/cli
+
+# Verify version (should be 0.4.0 or higher)
+logseq --version
+```
+
+The CLI v4.0 changed how graph arguments are passed. This server has been updated to use the new `-g` flag format.
 
 ## Prerequisites
 
@@ -27,14 +42,14 @@ A simple HTTP server that provides REST API access to Logseq CLI commands. Enabl
    python3 --version
    ```
 
-2. **Logseq CLI**
+2. **Logseq CLI v4.0+** ⚠️ **Version 4.0 or higher required**
    ```bash
    npm install -g @logseq/cli
    # or
    yarn global add @logseq/cli
    ```
 
-   Verify:
+   Verify (must show 0.4.0 or higher):
    ```bash
    logseq --version
    ```

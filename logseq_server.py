@@ -38,7 +38,7 @@ import os
 from pathlib import Path
 
 # Version
-VERSION = '0.0.3'
+VERSION = '0.0.4'
 
 # Configuration
 DEFAULT_PORT = 8765
@@ -105,6 +105,10 @@ class LogseqHTTPHandler(http.server.BaseHTTPRequestHandler):
         Args:
             command: Command name (list, show, search, query, etc.)
             args: List of additional arguments
+                  NOTE: As of @logseq/cli v4.0, the 'query' command requires -g flag:
+                  `logseq query "datalog" -g graph-name`
+                  The 'show' command still uses positional arguments:
+                  `logseq show graph-name`
 
         Returns:
             dict: Response with success, stdout, stderr, and optional data
@@ -255,7 +259,8 @@ class LogseqHTTPHandler(http.server.BaseHTTPRequestHandler):
             # Returns page info: uuid, name, title, journal-day
             datalog_query = f'[:find (pull ?p [:db/id :block/uuid :block/name :block/title :block/journal-day]) :where [?p :block/name ?name] [?p :block/title ?title] (or [(clojure.string/includes? ?name "{escaped_query_lower}")] [(clojure.string/includes? ?title "{escaped_query_orig}")])]'
 
-            response = self._execute_logseq_command('query', [graph, datalog_query])
+            # CLI v4.0 format: logseq query "datalog" -g graph-name
+            response = self._execute_logseq_command('query', [datalog_query, '-g', graph])
             self._send_json(response)
 
         else:
@@ -290,7 +295,8 @@ class LogseqHTTPHandler(http.server.BaseHTTPRequestHandler):
                 self._send_error_json('Missing required field: query')
                 return
 
-            response = self._execute_logseq_command('query', [graph, query])
+            # CLI v4.0 format: logseq query "datalog" -g graph-name
+            response = self._execute_logseq_command('query', [query, '-g', graph])
             self._send_json(response)
 
         else:
